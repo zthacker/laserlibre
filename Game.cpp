@@ -2,6 +2,7 @@
 // Created by zthacker on 4/5/2024.
 //
 
+#include <algorithm>
 #include "Game.h"
 
 Game::Game() {
@@ -48,8 +49,8 @@ void Game::initializePlayer() {
     this->m_player = new Entity(100, 100, m_playerTexture);
     SDL_QueryTexture(m_player->texture, nullptr, nullptr, &m_player->w, &m_player->h);
 
-    //fighterTail->next = m_player;
-    //fighterTail = m_player;
+    this->m_player->reload = 0;
+    this->m_fighters.push_back(m_player);
 }
 
 void Game::prepareScene() {
@@ -67,7 +68,6 @@ void Game::blit(SDL_Texture *texture, int x, int y) {
     dest.x = x;
     dest.y = y;
     SDL_QueryTexture(texture, nullptr, nullptr, &dest.w, &dest.h);
-
     SDL_RenderCopy(m_renderer, texture, nullptr, &dest);
 }
 
@@ -117,6 +117,11 @@ void Game::doInput() {
 }
 
 void Game::logic() {
+    doPlayer();
+    doBullets();
+}
+
+void Game::doPlayer() {
     m_player->dx = m_player->dy = 0;
 
     if (m_player->reload > 0)
@@ -144,18 +149,51 @@ void Game::logic() {
         m_player->dx = PLAYER_SPEED;
     }
 
-//    if (m_keyboard[SDL_SCANCODE_LCTRL] && m_player->reload == 0)
-//    {
-//        fireBullet();
-//    }
+    if (m_keyboard[SDL_SCANCODE_E] && m_player->reload == 0)
+    {
+        fireBullet();
+    }
 
     m_player->x += m_player->dx;
     m_player->y += m_player->dy;
 }
 
+void Game::doBullets() {
+    for(auto* b : m_bullets) {
+        b->x += b->dx;
+        b->y += b->dy;
+        auto newEnd = std::remove_if(m_bullets.begin(), m_bullets.end(),[](auto b){return b->x > SCREEN_WIDTH;});
+        m_bullets.erase(newEnd, m_bullets.end());
+    }
+
+}
+
 void Game::draw() {
+    drawPlayer();
+    drawBullets();
+}
+
+void Game::drawPlayer() {
     blit(m_player->texture, m_player->x, m_player->y);
 }
+
+void Game::drawBullets() {
+    for(const auto& b : m_bullets) {
+        blit(b->texture, b->x, b->y);
+    }
+}
+
+void Game::fireBullet() {
+    auto* bullet = new Entity(m_player->x, m_player->y, m_bulletTexture);
+    bullet->dx = PLAYER_BULLET_SPEED;
+    bullet->health = 1;
+    SDL_QueryTexture(bullet->texture, nullptr, nullptr, &bullet->w, &bullet->h);
+    bullet->y += (m_player->h /2) - (bullet->h / 2);
+    m_bullets.push_back(bullet);
+
+    m_player->reload = 8;
+}
+
 
 
 

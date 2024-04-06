@@ -7,6 +7,7 @@
 
 #include "common.h"
 #include "Entity.h"
+#include <list>
 #include <iostream>
 
 using namespace std;
@@ -35,27 +36,37 @@ private:
     //Inits
     void initializeSDL();
     void inititalizeTextures();
+    void initializePlayer();
     void initializeGame();
 
     //Draw
     void blit(SDL_Texture* texture, int x, int y);
     SDL_Texture* loadTexture(const string &filepath);
+    void drawPlayer();
+    void drawBullets();
 
     //Input
     void keyPressUp(SDL_KeyboardEvent* event);
     void keyPressDown(SDL_KeyboardEvent* event);
 
+    //Logic
+    void doPlayer();
+    void doBullets();
+
     //Player
-    void initializePlayer();
     Entity* m_player{};
-    SDL_Texture* m_playerTexture;
-    SDL_Texture* m_bulletTexture;
+    SDL_Texture* m_playerTexture{};
 
-    Entity* fighterHead{};
-    Entity* fighterTail{};
-    Entity* bulletHead{};
-    Entity* bulletTail{};
 
+    //Bullet
+    void fireBullet();
+    SDL_Texture* m_bulletTexture{};
+
+    //Entities
+    list<Entity*> m_fighters;
+    list<Entity*> m_bullets{};
+
+    //SDL
     SDL_Window* m_window{};
     SDL_Renderer* m_renderer{};
 

@@ -10,6 +10,7 @@ Game::Game() {
     initializeSDL();
     inititalizeTextures();
     initializePlayer();
+    initializeEnemy();
 }
 
 Game::~Game() {
@@ -43,6 +44,7 @@ void Game::initializeSDL() {
 void Game::inititalizeTextures() {
     m_playerTexture = loadTexture(R"(C:\Users\zthacker\laserlibre\gfx\player.png)");
     m_bulletTexture = loadTexture(R"(C:\Users\zthacker\laserlibre\gfx\playerBullet.png)");
+    m_enemyTexture = loadTexture(R"(C:\Users\zthacker\laserlibre\gfx\enemy.png)");
 }
 
 void Game::initializePlayer() {
@@ -51,6 +53,10 @@ void Game::initializePlayer() {
 
     this->m_player->reload = 0;
     this->m_fighters.push_back(m_player);
+}
+
+void Game::initializeEnemy() {
+    this->enemySpawnTimer = 0;
 }
 
 void Game::prepareScene() {
@@ -118,7 +124,10 @@ void Game::doInput() {
 
 void Game::logic() {
     doPlayer();
+    doFighters();
     doBullets();
+    spawnEnemies();
+
 }
 
 void Game::doPlayer() {
@@ -165,12 +174,35 @@ void Game::doBullets() {
         auto newEnd = std::remove_if(m_bullets.begin(), m_bullets.end(),[](auto b){return b->x > SCREEN_WIDTH;});
         m_bullets.erase(newEnd, m_bullets.end());
     }
+}
 
+void Game::doFighters() {
+    for(auto* f : m_fighters) {
+        f->x += f->dx;
+        f->y += f->dy;
+        if(f != m_player) {
+            auto newEnd = std::remove_if(m_fighters.begin(), m_fighters.end(),[](auto f){return f->x < -f->x;});
+            m_fighters.erase(newEnd, m_fighters.end());
+        }
+    }
+}
+
+void Game::spawnEnemies() {
+
+    if(--enemySpawnTimer <= 0) {
+        auto* enemy = new Entity(SCREEN_WIDTH,rand()%SCREEN_WIDTH,m_enemyTexture);
+        SDL_QueryTexture(enemy->texture, nullptr, nullptr, &enemy->w, &enemy->h);
+        enemy->dx = -(2 + (rand() % 4));
+        m_fighters.push_back(enemy);
+
+        enemySpawnTimer = 30 + (rand() % 60);
+    }
 }
 
 void Game::draw() {
     drawPlayer();
     drawBullets();
+    drawFighters();
 }
 
 void Game::drawPlayer() {
@@ -180,6 +212,12 @@ void Game::drawPlayer() {
 void Game::drawBullets() {
     for(const auto& b : m_bullets) {
         blit(b->texture, b->x, b->y);
+    }
+}
+
+void Game::drawFighters() {
+    for(const auto& f : m_fighters) {
+        blit(f->texture, f->x, f->y);
     }
 }
 
@@ -193,6 +231,10 @@ void Game::fireBullet() {
 
     m_player->reload = 8;
 }
+
+
+
+
 
 
 

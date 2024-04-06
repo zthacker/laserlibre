@@ -14,14 +14,13 @@ public:
 
     float        x;
     float        y;
-    int          w;
-    int          h;
-    float        dx;
-    float        dy;
-    int          health;
-    int          reload;
+    int          w{};
+    int          h{};
+    float        dx{};
+    float        dy{};
+    int          health{};
+    int          reload{};
     SDL_Texture* texture;
-    Entity*       next;
 };
 
 

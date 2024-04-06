@@ -37,6 +37,7 @@ private:
     void initializeSDL();
     void inititalizeTextures();
     void initializePlayer();
+    void initializeEnemy();
     void initializeGame();
 
     //Draw
@@ -44,6 +45,7 @@ private:
     SDL_Texture* loadTexture(const string &filepath);
     void drawPlayer();
     void drawBullets();
+    void drawFighters();
 
     //Input
     void keyPressUp(SDL_KeyboardEvent* event);
@@ -52,6 +54,8 @@ private:
     //Logic
     void doPlayer();
     void doBullets();
+    void doFighters();
+    void spawnEnemies();
 
     //Player
     Entity* m_player{};
@@ -61,6 +65,10 @@ private:
     //Bullet
     void fireBullet();
     SDL_Texture* m_bulletTexture{};
+
+    //Enemy
+    SDL_Texture* m_enemyTexture;
+    int enemySpawnTimer;
 
     //Entities
     list<Entity*> m_fighters;

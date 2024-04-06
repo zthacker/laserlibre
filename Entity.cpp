@@ -12,11 +12,4 @@ Entity::Entity(float x, float y, SDL_Texture* texture) {
 
 Entity::~Entity() {
     SDL_DestroyTexture(texture);
-
-    Entity* temp = next;
-    while(next) {
-        next = next->next;
-        delete(temp);
-        temp = next;
-    }
 }

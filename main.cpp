@@ -18,11 +18,22 @@ int main(int argc, char *argv[]) {
     remainder = 0;
 
     while(1) {
+        //prepare the game scene
         game->prepareScene();
+
+        //do input functionality
         game->doInput();
+
+        //run game logic
         game->logic();
+
+        //run game drawing
         game->draw();
+
+        //present the game scene
         game->presentScene();
+
+        //cap the framerate
         capFrameRate(&then, &remainder);
     }
 

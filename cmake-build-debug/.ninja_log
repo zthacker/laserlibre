@@ -1,0 +1,17 @@
+# ninja log v5
+9	630	7341314973691162	CMakeFiles/laserlibre.dir/Entity.cpp.obj	4682ebd3ce9330ea
+0	633	7341314973731162	CMakeFiles/laserlibre.dir/main.cpp.obj	8158d0e3af832f46
+6	640	7341314973801164	CMakeFiles/laserlibre.dir/Game.cpp.obj	a44548ae9d4c75bf
+3	619	7341315575377819	CMakeFiles/laserlibre.dir/main.cpp.obj	8158d0e3af832f46
+619	692	7341315576078759	laserlibre.exe	2d73d1dd0b509ebb
+2	580	7341316387044832	CMakeFiles/laserlibre.dir/main.cpp.obj	8158d0e3af832f46
+580	646	7341316387682695	laserlibre.exe	2d73d1dd0b509ebb
+2	569	7341316597931635	CMakeFiles/laserlibre.dir/Game.cpp.obj	a44548ae9d4c75bf
+569	636	7341316598581016	laserlibre.exe	2d73d1dd0b509ebb
+3	568	7341317822879154	CMakeFiles/laserlibre.dir/main.cpp.obj	8158d0e3af832f46
+568	637	7341317823531390	laserlibre.exe	2d73d1dd0b509ebb
+6	583	7341318877744898	CMakeFiles/laserlibre.dir/main.cpp.obj	8158d0e3af832f46
+3	591	7341318877817666	CMakeFiles/laserlibre.dir/Game.cpp.obj	a44548ae9d4c75bf
+591	666	7341318878537697	laserlibre.exe	2d73d1dd0b509ebb
+2	563	7341319957799144	CMakeFiles/laserlibre.dir/Game.cpp.obj	a44548ae9d4c75bf
+563	630	7341319958431410	laserlibre.exe	2d73d1dd0b509ebb

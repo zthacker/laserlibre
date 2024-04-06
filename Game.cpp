@@ -7,6 +7,7 @@
 Game::Game() {
     m_state = LASER_STATE_SETUP;
     initializeSDL();
+    inititalizeTextures();
     initializePlayer();
 }
 
@@ -38,13 +39,17 @@ void Game::initializeSDL() {
     IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
 }
 
-void Game::initializePlayer() {
-    SDL_Texture* texture = loadTexture(R"(C:\Users\zthacker\laserlibre\gfx\player.png)");
-    this->player = new Entity(100,100, texture);
-    SDL_QueryTexture(player->texture, nullptr, nullptr, &player->w, &player->h);
+void Game::inititalizeTextures() {
+    m_playerTexture = loadTexture(R"(C:\Users\zthacker\laserlibre\gfx\player.png)");
+    m_bulletTexture = loadTexture(R"(C:\Users\zthacker\laserlibre\gfx\playerBullet.png)");
+}
 
-    //fighterTail->next = player;
-    //fighterTail = player;
+void Game::initializePlayer() {
+    this->m_player = new Entity(100, 100, m_playerTexture);
+    SDL_QueryTexture(m_player->texture, nullptr, nullptr, &m_player->w, &m_player->h);
+
+    //fighterTail->next = m_player;
+    //fighterTail = m_player;
 }
 
 void Game::prepareScene() {
@@ -75,14 +80,14 @@ SDL_Texture* Game::loadTexture(const string &filepath) {
 void Game::keyPressUp(SDL_KeyboardEvent *event) {
     if (event->repeat == 0 && event->keysym.scancode < MAX_KEYBOARD_KEYS)
     {
-        keyboard[event->keysym.scancode] = 0;
+        m_keyboard[event->keysym.scancode] = 0;
     }
 }
 
 void Game::keyPressDown(SDL_KeyboardEvent *event) {
     if (event->repeat == 0 && event->keysym.scancode < MAX_KEYBOARD_KEYS)
     {
-        keyboard[event->keysym.scancode] = 1;
+        m_keyboard[event->keysym.scancode] = 1;
     }
 }
 
@@ -112,47 +117,47 @@ void Game::doInput() {
 }
 
 void Game::logic() {
-    printf("doing logic\n");
-    player->dx = player->dy = 0;
+    m_player->dx = m_player->dy = 0;
 
-    if (player->reload > 0)
+    if (m_player->reload > 0)
     {
-        player->reload--;
+        m_player->reload--;
     }
 
-    if (keyboard[SDL_SCANCODE_UP])
+    if (m_keyboard[SDL_SCANCODE_UP])
     {
-        player->dy = -PLAYER_SPEED;
+        m_player->dy = -PLAYER_SPEED;
     }
 
-    if (keyboard[SDL_SCANCODE_DOWN])
+    if (m_keyboard[SDL_SCANCODE_DOWN])
     {
-        player->dy = PLAYER_SPEED;
+        m_player->dy = PLAYER_SPEED;
     }
 
-    if (keyboard[SDL_SCANCODE_LEFT])
+    if (m_keyboard[SDL_SCANCODE_LEFT])
     {
-        player->dx = -PLAYER_SPEED;
+        m_player->dx = -PLAYER_SPEED;
     }
 
-    if (keyboard[SDL_SCANCODE_RIGHT])
+    if (m_keyboard[SDL_SCANCODE_RIGHT])
     {
-        player->dx = PLAYER_SPEED;
+        m_player->dx = PLAYER_SPEED;
     }
 
-//    if (keyboard[SDL_SCANCODE_LCTRL] && player->reload == 0)
+//    if (m_keyboard[SDL_SCANCODE_LCTRL] && m_player->reload == 0)
 //    {
 //        fireBullet();
 //    }
 
-    player->x += player->dx;
-    player->y += player->dy;
+    m_player->x += m_player->dx;
+    m_player->y += m_player->dy;
 }
 
 void Game::draw() {
-    printf("doing draw\n");
-    blit(player->texture, player->x, player->y);
+    blit(m_player->texture, m_player->x, m_player->y);
 }
+
+
 
 
 

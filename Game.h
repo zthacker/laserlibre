@@ -34,6 +34,7 @@ private:
 
     //Inits
     void initializeSDL();
+    void inititalizeTextures();
     void initializeGame();
 
     //Draw
@@ -46,7 +47,9 @@ private:
 
     //Player
     void initializePlayer();
-    Entity* player{};
+    Entity* m_player{};
+    SDL_Texture* m_playerTexture;
+    SDL_Texture* m_bulletTexture;
 
     Entity* fighterHead{};
     Entity* fighterTail{};
@@ -57,7 +60,7 @@ private:
     SDL_Renderer* m_renderer{};
 
     int m_state;
-    int keyboard[MAX_KEYBOARD_KEYS]{};
+    int m_keyboard[MAX_KEYBOARD_KEYS]{};
 };
 
 

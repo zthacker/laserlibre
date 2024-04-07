@@ -65,6 +65,7 @@ private:
     //Bullet
     void fireBullet();
     SDL_Texture* m_bulletTexture{};
+    int bulletHitFighter(Entity* b);
 
     //Enemy
     SDL_Texture* m_enemyTexture;
@@ -77,6 +78,9 @@ private:
     //SDL
     SDL_Window* m_window{};
     SDL_Renderer* m_renderer{};
+
+    //Collision
+    int collision(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2);
 
     int m_state;
     int m_keyboard[MAX_KEYBOARD_KEYS]{};

@@ -53,6 +53,7 @@ void Game::initializePlayer() {
 
     this->m_player->reload = 0;
     this->m_player->health = 1;
+    this->m_player->side = SIDE_PLAYER;
     this->m_fighters.push_back(m_player);
 }
 
@@ -173,7 +174,7 @@ void Game::doBullets() {
         Entity* b = *it;
         b->x += b->dx;
         b->y += b->dy;
-        if(b->x > SCREEN_WIDTH || b->health == 0) {
+        if(bulletHitFighter(b) || b->x > SCREEN_WIDTH || b->health == 0) {
             it = m_bullets.erase(it);
         }
         it++;
@@ -199,6 +200,7 @@ void Game::spawnEnemies() {
         SDL_QueryTexture(enemy->texture, nullptr, nullptr, &enemy->w, &enemy->h);
         enemy->dx = -(2 + (rand() % 4));
         enemy->health = 1;
+        enemy->side = SIDE_ALIEN;
         m_fighters.push_back(enemy);
 
         enemySpawnTimer = 30 + (rand() % 60);
@@ -234,9 +236,28 @@ void Game::fireBullet() {
     SDL_QueryTexture(bullet->texture, nullptr, nullptr, &bullet->w, &bullet->h);
     bullet->y += (m_player->h /2) - (bullet->h / 2);
     bullet->health = 1;
+    bullet->side = SIDE_PLAYER;
     m_bullets.push_back(bullet);
 
     m_player->reload = 8;
+}
+
+int Game::collision(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2) {
+    return (max(x1, x2) < min(x1 + w1, x2 + w2)) && (max(y1, y2) < min(y1 + h1, y2 + h2));
+}
+
+int Game::bulletHitFighter(Entity *b) {
+    for(auto it = m_fighters.begin(); it!=m_fighters.end();) {
+        Entity* f = *it;
+        if(f->side != b->side && collision(b->x, b->y, b->w, b->h, f->x, f->y, f->w, f->h)) {
+            b->health = 0;
+            f->health = 0;
+            return 1;
+        }
+        it++;
+    }
+
+    return 0;
 }
 
 

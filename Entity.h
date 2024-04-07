@@ -21,6 +21,7 @@ public:
     int          health{};
     int          reload{};
     SDL_Texture* texture;
+    int          side;
 };
 
 

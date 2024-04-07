@@ -52,6 +52,7 @@ void Game::initializePlayer() {
     SDL_QueryTexture(m_player->texture, nullptr, nullptr, &m_player->w, &m_player->h);
 
     this->m_player->reload = 0;
+    this->m_player->health = 1;
     this->m_fighters.push_back(m_player);
 }
 
@@ -168,22 +169,26 @@ void Game::doPlayer() {
 }
 
 void Game::doBullets() {
-    for(auto* b : m_bullets) {
+    for(auto it = m_bullets.begin(); it!=m_bullets.end();) {
+        Entity* b = *it;
         b->x += b->dx;
         b->y += b->dy;
-        auto newEnd = std::remove_if(m_bullets.begin(), m_bullets.end(),[](auto b){return b->x > SCREEN_WIDTH;});
-        m_bullets.erase(newEnd, m_bullets.end());
+        if(b->x > SCREEN_WIDTH || b->health == 0) {
+            it = m_bullets.erase(it);
+        }
+        it++;
     }
 }
 
 void Game::doFighters() {
-    for(auto* f : m_fighters) {
+    for(auto it = m_fighters.begin(); it!=m_fighters.end();) {
+        Entity* f = *it;
         f->x += f->dx;
         f->y += f->dy;
-        if(f != m_player) {
-            auto newEnd = std::remove_if(m_fighters.begin(), m_fighters.end(),[](auto f){return f->x < -f->x;});
-            m_fighters.erase(newEnd, m_fighters.end());
+        if(f != m_player && (f->x < -f->w) || f->health == 0) {
+            it = m_fighters.erase(it);
         }
+        it++;
     }
 }
 
@@ -193,6 +198,7 @@ void Game::spawnEnemies() {
         auto* enemy = new Entity(SCREEN_WIDTH,rand()%SCREEN_WIDTH,m_enemyTexture);
         SDL_QueryTexture(enemy->texture, nullptr, nullptr, &enemy->w, &enemy->h);
         enemy->dx = -(2 + (rand() % 4));
+        enemy->health = 1;
         m_fighters.push_back(enemy);
 
         enemySpawnTimer = 30 + (rand() % 60);
@@ -227,6 +233,7 @@ void Game::fireBullet() {
     bullet->health = 1;
     SDL_QueryTexture(bullet->texture, nullptr, nullptr, &bullet->w, &bullet->h);
     bullet->y += (m_player->h /2) - (bullet->h / 2);
+    bullet->health = 1;
     m_bullets.push_back(bullet);
 
     m_player->reload = 8;

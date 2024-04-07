@@ -71,7 +71,7 @@ private:
     int enemySpawnTimer;
 
     //Entities
-    list<Entity*> m_fighters;
+    list<Entity*> m_fighters{};
     list<Entity*> m_bullets{};
 
     //SDL

@@ -196,7 +196,7 @@ void Game::doFighters() {
 void Game::spawnEnemies() {
 
     if(--enemySpawnTimer <= 0) {
-        auto* enemy = new Entity(SCREEN_WIDTH,rand()%SCREEN_WIDTH,m_enemyTexture);
+        auto* enemy = new Entity(SCREEN_WIDTH,rand()%SCREEN_HEIGHT,m_enemyTexture);
         SDL_QueryTexture(enemy->texture, nullptr, nullptr, &enemy->w, &enemy->h);
         enemy->dx = -(2 + (rand() % 4));
         enemy->health = 1;

@@ -11,5 +11,4 @@ Entity::Entity(float x, float y, SDL_Texture* texture) {
 }
 
 Entity::~Entity() {
-    SDL_DestroyTexture(texture);
 }

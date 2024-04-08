@@ -17,6 +17,9 @@ Game::~Game() {
     IMG_Quit();
     SDL_DestroyRenderer(m_renderer);
     SDL_DestroyWindow(m_window);
+    SDL_DestroyTexture(m_bulletTexture);
+    SDL_DestroyTexture(m_playerTexture);
+    SDL_DestroyTexture(m_enemyTexture);
     SDL_Quit();
     m_state = LASER_STATE_SETUP;
 }
@@ -54,6 +57,7 @@ void Game::initializePlayer() {
     this->m_player->reload = 0;
     this->m_player->health = 1;
     this->m_player->side = SIDE_PLAYER;
+    this->m_player->id = rand();
     this->m_fighters.push_back(m_player);
 }
 
@@ -170,26 +174,38 @@ void Game::doPlayer() {
 }
 
 void Game::doBullets() {
-    for(auto it = m_bullets.begin(); it!=m_bullets.end();) {
-        Entity* b = *it;
+
+    list<Entity*> removeList;
+
+    for(Entity* b : m_bullets) {
         b->x += b->dx;
         b->y += b->dy;
         if(bulletHitFighter(b) || b->x > SCREEN_WIDTH || b->health == 0) {
-            it = m_bullets.erase(it);
+            removeList.push_back(b);
         }
-        it++;
+    }
+
+    for(Entity* e : removeList) {
+        m_bullets.remove(e);
+        delete e;
     }
 }
 
 void Game::doFighters() {
-    for(auto it = m_fighters.begin(); it!=m_fighters.end();) {
-        Entity* f = *it;
+
+    list<Entity*> removeList;
+
+    for(Entity* f : m_fighters) {
         f->x += f->dx;
         f->y += f->dy;
         if(f != m_player && (f->x < -f->w) || f->health == 0) {
-            it = m_fighters.erase(it);
+            removeList.push_back(f);
         }
-        it++;
+    }
+
+    for(Entity* e : removeList) {
+        m_fighters.remove(e);
+        delete e;
     }
 }
 
@@ -201,6 +217,7 @@ void Game::spawnEnemies() {
         enemy->dx = -(2 + (rand() % 4));
         enemy->health = 1;
         enemy->side = SIDE_ALIEN;
+        enemy->id = rand();
         m_fighters.push_back(enemy);
 
         enemySpawnTimer = 30 + (rand() % 60);
@@ -218,7 +235,7 @@ void Game::drawPlayer() {
 }
 
 void Game::drawBullets() {
-    for(const auto& b : m_bullets) {
+    for(Entity* b : m_bullets) {
         blit(b->texture, b->x, b->y);
     }
 }
@@ -237,6 +254,7 @@ void Game::fireBullet() {
     bullet->y += (m_player->h /2) - (bullet->h / 2);
     bullet->health = 1;
     bullet->side = SIDE_PLAYER;
+    bullet->id = rand();
     m_bullets.push_back(bullet);
 
     m_player->reload = 8;

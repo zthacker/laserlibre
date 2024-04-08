@@ -12,6 +12,7 @@ public:
     Entity(float x, float y, SDL_Texture* texture);
     ~Entity();
 
+    int          id;
     float        x;
     float        y;
     int          w{};

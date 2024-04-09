@@ -23,7 +23,9 @@ public:
     float        dy{};
     int          health{};
     int          reload{};
+    int          r,g,b,a;
     SDL_Texture* texture;
+    SDL_Rect     rect;
     int          side;
 };
 

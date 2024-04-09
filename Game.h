@@ -20,6 +20,12 @@ enum {
     LASER_STATE_GAME_OVER
 };
 
+typedef struct {
+    int x;
+    int y;
+    int speed;
+} Star;
+
 class Game {
 public:
     Game();
@@ -39,25 +45,37 @@ private:
     void inititalizeTextures();
     void initializePlayer();
     void initializeEnemy();
+    void initializeStarfield();
     void initializeGame();
 
     //Draw
     void blit(SDL_Texture* texture, int x, int y);
+    void blitRect(SDL_Texture* texture, SDL_Rect* src, int x, int y);
     SDL_Texture* loadTexture(const string &filepath);
+    void drawBackground();
+    void drawStarfield();
     void drawBullets();
     void drawFighters();
+    void drawDebris();
+    void drawExplosions();
+    void drawText(int x, int y, int r, int g, int b, char *format, ...);
+    void drawHud();
 
     //Input
     void keyPressUp(SDL_KeyboardEvent* event);
     void keyPressDown(SDL_KeyboardEvent* event);
 
     //Logic
+    void doBackground();
+    void doStarfield();
     void doPlayer();
     void doEnemies();
     void doBullets();
     void doFighters();
     void spawnEnemies();
     void clipPlayer();
+    void doExplosions();
+    void doDebris();
 
     //Player
     Entity* m_player{};
@@ -91,10 +109,24 @@ private:
 
     //Game
     void resetGame();
+    SDL_Texture* m_background{};
+    SDL_Texture* m_explosionTexture{};
+    list<Entity*> m_explosions{};
+    list<Entity*> m_debris{};
+    void addExplosions(int x, int y, int num);
+    void addDebris(Entity* e);
 
     int m_state;
     int m_keyboard[MAX_KEYBOARD_KEYS]{};
+    Star m_stars[MAX_STARS];
     int m_gameResetTimer;
+    int m_backgroundX;
+    int m_score;
+    int m_highscore;
+    SDL_Texture* m_fontTexture{};
+    char m_drawTextBuffer[MAX_LINE_LENGTH];
+
+
 };
 
 

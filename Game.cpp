@@ -49,6 +49,9 @@ void Game::inititalizeTextures() {
     m_playerBulletTexture = loadTexture(R"(C:\Users\zthacker\laserlibre\gfx\playerBullet.png)");
     m_enemyBulletTexture = loadTexture(R"(C:\Users\zthacker\laserlibre\gfx\alienBullet.png)");
     m_enemyTexture = loadTexture(R"(C:\Users\zthacker\laserlibre\gfx\enemy.png)");
+    m_background = loadTexture(R"(C:\Users\zthacker\laserlibre\gfx\background.png)");
+    m_explosionTexture = loadTexture(R"(C:\Users\zthacker\laserlibre\gfx\explosion.png)");
+    m_fontTexture = loadTexture(R"(C:\Users\zthacker\laserlibre\gfx\font.png)");
 }
 
 void Game::initializePlayer() {
@@ -64,6 +67,15 @@ void Game::initializePlayer() {
 
 void Game::initializeEnemy() {
     this->enemySpawnTimer = 0;
+}
+
+void Game::initializeStarfield() {
+    for (int i = 0; i < MAX_STARS; ++i) {
+        m_stars[i].x = rand() % SCREEN_WIDTH;
+        m_stars[i].y = rand() % SCREEN_HEIGHT;
+        //random speed from 1 to 3;
+        m_stars[i].speed = 1 + rand() % 8;
+    }
 }
 
 void Game::prepareScene() {
@@ -84,6 +96,16 @@ void Game::blit(SDL_Texture *texture, int x, int y) {
     SDL_RenderCopy(m_renderer, texture, nullptr, &dest);
 }
 
+void Game::blitRect(SDL_Texture *texture, SDL_Rect* src, int x, int y) {
+    SDL_Rect dest;
+
+    dest.x = x;
+    dest.y = y;
+    dest.w = src->w;
+    dest.h = src->h;
+
+    SDL_RenderCopy(m_renderer, texture, src, &dest);
+}
 
 SDL_Texture* Game::loadTexture(const string &filepath) {
     SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO, "Loading %s", filepath.c_str());
@@ -130,12 +152,16 @@ void Game::doInput() {
 }
 
 void Game::logic() {
+    doBackground();
+    doStarfield();
     doPlayer();
     doEnemies();
     doFighters();
     doBullets();
     spawnEnemies();
     clipPlayer();
+    doExplosions();
+    doDebris();
 
     if(m_player == nullptr && --m_gameResetTimer <= 0) {
         resetGame();
@@ -257,15 +283,46 @@ void Game::spawnEnemies() {
         enemy->reload = FPS * (1 +(rand() %3));
         m_fighters.push_back(enemy);
 
-        enemySpawnTimer = 30 + (rand() % 60);
+        enemySpawnTimer = 30 + (rand() % FPS);
     }
 }
 
 void Game::draw() {
+    drawBackground();
+    drawStarfield();
     drawBullets();
     drawFighters();
+    drawDebris();
+    drawExplosions();
+    drawHud();
 }
 
+
+void Game::drawBackground() {
+    SDL_Rect dest;
+    for (int x = 0; x < SCREEN_WIDTH; x += SCREEN_WIDTH) {
+        dest.x = x;
+        dest.y = 0;
+        dest.w = SCREEN_WIDTH;
+        dest.h = SCREEN_HEIGHT;
+
+        SDL_RenderCopy(m_renderer, m_background, nullptr, &dest);
+    }
+}
+
+void Game::drawStarfield() {
+    int i, c;
+
+    //go through each star
+    for(i = 0; i < MAX_STARS; i++) {
+        c = 32 * m_stars[i].speed;
+
+        //draw a horizontal line of stars, setting the color to be the speed of the star (higher the speed, brighter the color)
+        //using a line instead of a point here to make the stars a bit easier to see and provide a sense of speed
+        SDL_SetRenderDrawColor(m_renderer, c, c, c, 255);
+        SDL_RenderDrawLine(m_renderer, m_stars[i].x, m_stars[i].y, m_stars[i].x + 3, m_stars[i].y);
+    }
+}
 
 void Game::drawBullets() {
     for(Entity* b : m_bullets) {
@@ -280,6 +337,84 @@ void Game::drawFighters() {
         if(f != nullptr) {
             blit(f->texture, f->x, f->y);
         }
+    }
+}
+
+void Game::drawDebris() {
+    for(Entity* e : m_debris) {
+        if(e != nullptr) {
+            blitRect(e->texture, &e->rect, e->x, e->y);
+        }
+    }
+}
+
+void Game::drawExplosions() {
+    //add blending -- meaning as we add layers, the colors will blend together and become brighter and reaching white
+    SDL_SetRenderDrawBlendMode(m_renderer, SDL_BLENDMODE_ADD);
+    SDL_SetTextureBlendMode(m_explosionTexture, SDL_BLENDMODE_ADD);
+
+    for(Entity* e : m_debris) {
+        SDL_SetTextureColorMod(m_explosionTexture, e->r, e->g, e->b);
+        SDL_SetTextureAlphaMod(m_explosionTexture, e->a);
+
+        blit(m_explosionTexture, e->x, e->y);
+    }
+
+    SDL_SetRenderDrawBlendMode(m_renderer, SDL_BLENDMODE_NONE);
+}
+
+//x and y is where we want to draw the text at; r, g, b is the color; format is the text itself
+void Game::drawText(int x, int y, int r, int g, int b, char *format, ...) {
+
+    //to store chars and lengths later on
+    int len, c;
+
+    //used to specify a region of texture to use
+    SDL_Rect rect;
+
+    //holds varargs from input
+    va_list args;
+
+    //clear out text buffer
+    memset(&m_drawTextBuffer, '\0', sizeof(m_drawTextBuffer));
+
+    //format the string
+    va_start(args, format);
+    vsprintf(m_drawTextBuffer, format, args);
+    va_end(args);
+
+    //get the buffer text length to use for the rect
+    len = strlen(m_drawTextBuffer);
+
+    //setup the rect
+    rect.w = GLYPH_WIDTH;
+    rect.h = GLYPH_HEIGHT;
+    rect.y = 0;
+
+    //set the color
+    SDL_SetTextureColorMod(m_fontTexture, r, g, b);
+
+    //only doing ASCII characters, so if it's not supported, it's not drawn in blitRect
+    for (int i = 0; i < len; ++i) {
+        c = m_drawTextBuffer[i];
+        if(c >= ' ' && c <= 'Z') {
+            //x is the subtraction of the int value of (' ')
+            //This is because a space is the first character in our font texture and therefore has an x position of 0.
+            // This basically aligns our glyph coordinates on the x axis.
+            rect.x = (c - ' ') * GLYPH_WIDTH;
+            blitRect(m_fontTexture, &rect, x, y);
+            x += GLYPH_WIDTH;
+        }
+    }
+}
+
+void Game::drawHud() {
+    drawText(10,10,255,255,255,"SCORE: %03d", m_score);
+
+    if(m_score > 0 && m_score == m_highscore) {
+        drawText(960, 10, 0, 255, 0, "HIGH SCORE: %03d", m_highscore);
+    } else {
+        drawText(960, 10, 255, 255, 255, "HIGH SCORE: %03d", m_highscore);
     }
 }
 
@@ -332,6 +467,12 @@ int Game::bulletHitFighter(Entity *b) {
         if(f->side != b->side && collision(b->x, b->y, b->w, b->h, f->x, f->y, f->w, f->h)) {
             b->health = 0;
             f->health = 0;
+
+            addExplosions(f->x, f->y, 32);
+            addDebris(f);
+
+            m_score++;
+            m_highscore = max(m_score, m_highscore);
             return 1;
         }
         it++;
@@ -395,17 +536,173 @@ void Game::resetGame() {
         removeList.push_back(e);
     }
 
+    for(Entity* e : m_explosions) {
+        removeList.push_back(e);
+    }
+
+    for(Entity* e : m_debris) {
+        removeList.push_back(e);
+    }
+
     for(Entity* r : removeList) {
         delete r;
     }
     m_bullets.clear();
     m_fighters.clear();
-    delete m_player;
+    m_explosions.clear();
+    m_debris.clear();
 
     initializePlayer();
     initializeEnemy();
-    m_gameResetTimer = FPS * 2;
+    initializeStarfield();
+
+    //3 second wait time before we restart the game
+    m_gameResetTimer = FPS * 3;
+
+    m_score = 0;
 }
+
+void Game::doBackground() {
+    //decrements backgroundX and resets to 0 when it reaches negative screen width. This means when we draw it'll wrap around
+    if(--m_backgroundX < -SCREEN_WIDTH) {
+        m_backgroundX = 0;
+    }
+}
+
+/*
+ * Decrease the star's x value according to speed. When the value of x is less than 0 we'll return it to the other side of the screen.
+ * We're taking into consideration what the negative value was at the time, rather than setting the star's x exactly to SCREEN_WIDTH.
+ * This should help to avoid a situation where the stars could all start to line up over time.
+ */
+void Game::doStarfield() {
+    for (int i = 0; i < MAX_STARS; ++i) {
+        m_stars[i].x -= m_stars[i].speed;
+
+        if(m_stars[i].x < 0) {
+            m_stars[i].x = SCREEN_WIDTH + m_stars[i].x;
+        }
+    }
+}
+
+void Game::doExplosions() {
+    list<Entity*> removeList;
+    for(Entity* e : m_explosions) {
+        if(e != nullptr) {
+            e->x += e->dx;
+            e->y += e->dy;
+            //once the alpha level (a) is 0 -- meaning it's faded out -- we'll delete it.
+            if(--e->a <= 0) {
+                removeList.push_back(e);
+            }
+        }
+    }
+
+    for(Entity* e : removeList) {
+        m_explosions.remove(e);
+        delete e;
+    }
+
+}
+
+void Game::doDebris() {
+    list<Entity*> removeList;
+    for(Entity* e : m_debris) {
+        e->x += e->dx;
+        e->y += e->dy;
+        //increase by .5 so they go down the screen
+        e->dy += 0.5;
+        //decrement life and see if it's <= 0
+        if(--e->health <= 0) {
+            removeList.push_back(e);
+        }
+    }
+    for(Entity* e : removeList) {
+        m_debris.remove(e);
+        delete e;
+    }
+}
+
+void Game::addExplosions(int x, int y, int num) {
+    for (int i = 0; i < num; ++i) {
+        // +/- 32 pixels in each direction
+        int orgX = x + (rand() %32) - (rand() % 32);
+        int orgY = y + (rand() %32) - (rand() % 32);
+
+        //create explosion and add
+        Entity* e = new Entity(orgX, orgY, nullptr);
+        m_explosions.push_back(e);
+
+        //get a +/- 9
+        e->dx = (rand() % 10) - (rand() % 10);
+        e->dy = (rand() % 10) - (rand() % 10);
+
+        //divide by 10 to get us a +/- 0.9
+        e->dx /= 10;
+        e->dy /= 10;
+
+        //do a random color -- SDL does color value 0 to 255
+        switch (rand() % 4) {
+            case 0:
+                e->r = 255;
+                break;
+            case 1:
+                e->r = 255;
+                e->g = 128;
+                break;
+            case 2:
+                e->r = 255;
+                e->g = 255;
+                break;
+            default:
+                e->r = 255;
+                e->g = 255;
+                e->b = 255;
+                break;
+        }
+
+        //Alpha to random between 0 and 3 seconds
+        e->a = rand() % FPS * 3;
+    }
+}
+
+void Game::addDebris(Entity *e) {
+    int x,y,w,h;
+
+    //divide entitie's width and height by 2
+    w = e->w / 2;
+    h = e->h / 2;
+
+    //loop through x and y, incrementing by values w and h
+    for (y = 0; y <= h; y+=h) {
+        for(x = 0; x <= w; x += w) {
+            int orgX = e->x + e->w / 2;
+            int orgY = e->y + e->h / 2;
+            Entity* d = new Entity(orgX, orgY, e->texture);
+            m_debris.push_back(d);
+
+            //random velocity on x
+            d->dx = (rand() % 5) - (rand() % 5);
+
+            //always a negative velocity on y, because in doDebris, this eventually will go back down
+            d->dy = -(5 + (rand() % 12));
+
+            //2 second health (life)
+            d->health = FPS * 2;
+
+            /*
+             * set the rect's x and y to those of our for loop, and the w and h to the w and h we worked out earlier.
+             * In effect, we get the texture coordinates of our source texture in quarters.
+             */
+            d->rect.x = x;
+            d->rect.y = y;
+            d->rect.w = w;
+            d->rect.h = h;
+        }
+    }
+}
+
+
+
 
 
 

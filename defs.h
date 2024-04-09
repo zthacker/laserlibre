@@ -22,5 +22,10 @@
 
 #define ALIEN_BULLET_SPEED    8
 
+#define MAX_STARS 500
+
+#define GLYPH_HEIGHT 28
+#define GLYPH_WIDTH  18
+#define MAX_LINE_LENGTH 1024
 
 

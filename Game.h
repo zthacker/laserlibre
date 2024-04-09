@@ -9,6 +9,7 @@
 #include "Entity.h"
 #include <list>
 #include <iostream>
+#include <memory>
 
 using namespace std;
 
@@ -43,7 +44,6 @@ private:
     //Draw
     void blit(SDL_Texture* texture, int x, int y);
     SDL_Texture* loadTexture(const string &filepath);
-    void drawPlayer();
     void drawBullets();
     void drawFighters();
 
@@ -53,23 +53,27 @@ private:
 
     //Logic
     void doPlayer();
+    void doEnemies();
     void doBullets();
     void doFighters();
     void spawnEnemies();
+    void clipPlayer();
 
     //Player
     Entity* m_player{};
     SDL_Texture* m_playerTexture{};
 
-
     //Bullet
     void fireBullet();
-    SDL_Texture* m_bulletTexture{};
+    SDL_Texture* m_playerBulletTexture{};
     int bulletHitFighter(Entity* b);
 
     //Enemy
-    SDL_Texture* m_enemyTexture;
-    int enemySpawnTimer;
+    void fireEnemeyBullet(Entity* e);
+    SDL_Texture* m_enemyTexture{};
+    SDL_Texture* m_enemyBulletTexture{};
+    int enemySpawnTimer{};
+
 
     //Entities
     list<Entity*> m_fighters{};
@@ -82,8 +86,15 @@ private:
     //Collision
     int collision(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2);
 
+    //Enemy Bullet
+    void calculateSlope(int x1, int y1, int x2, int y2, float *dx, float *dy);
+
+    //Game
+    void resetGame();
+
     int m_state;
     int m_keyboard[MAX_KEYBOARD_KEYS]{};
+    int m_gameResetTimer;
 };
 
 

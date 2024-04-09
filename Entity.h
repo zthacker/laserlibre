@@ -7,6 +7,8 @@
 
 #include "common.h"
 
+using namespace std;
+
 class Entity {
 public:
     Entity(float x, float y, SDL_Texture* texture);

@@ -17,7 +17,7 @@ Game::~Game() {
     IMG_Quit();
     SDL_DestroyRenderer(m_renderer);
     SDL_DestroyWindow(m_window);
-    SDL_DestroyTexture(m_bulletTexture);
+    SDL_DestroyTexture(m_playerBulletTexture);
     SDL_DestroyTexture(m_playerTexture);
     SDL_DestroyTexture(m_enemyTexture);
     SDL_Quit();
@@ -46,7 +46,8 @@ void Game::initializeSDL() {
 
 void Game::inititalizeTextures() {
     m_playerTexture = loadTexture(R"(C:\Users\zthacker\laserlibre\gfx\player.png)");
-    m_bulletTexture = loadTexture(R"(C:\Users\zthacker\laserlibre\gfx\playerBullet.png)");
+    m_playerBulletTexture = loadTexture(R"(C:\Users\zthacker\laserlibre\gfx\playerBullet.png)");
+    m_enemyBulletTexture = loadTexture(R"(C:\Users\zthacker\laserlibre\gfx\alienBullet.png)");
     m_enemyTexture = loadTexture(R"(C:\Users\zthacker\laserlibre\gfx\enemy.png)");
 }
 
@@ -130,47 +131,65 @@ void Game::doInput() {
 
 void Game::logic() {
     doPlayer();
+    doEnemies();
     doFighters();
     doBullets();
     spawnEnemies();
+    clipPlayer();
+
+    if(m_player == nullptr && --m_gameResetTimer <= 0) {
+        resetGame();
+    }
 
 }
 
 void Game::doPlayer() {
-    m_player->dx = m_player->dy = 0;
 
-    if (m_player->reload > 0)
-    {
-        m_player->reload--;
+    if(m_player != nullptr) {
+        m_player->dx = m_player->dy = 0;
+
+        if (m_player->reload > 0)
+        {
+            m_player->reload--;
+        }
+
+        if (m_keyboard[SDL_SCANCODE_UP])
+        {
+            m_player->dy = -PLAYER_SPEED;
+        }
+
+        if (m_keyboard[SDL_SCANCODE_DOWN])
+        {
+            m_player->dy = PLAYER_SPEED;
+        }
+
+        if (m_keyboard[SDL_SCANCODE_LEFT])
+        {
+            m_player->dx = -PLAYER_SPEED;
+        }
+
+        if (m_keyboard[SDL_SCANCODE_RIGHT])
+        {
+            m_player->dx = PLAYER_SPEED;
+        }
+
+        if (m_keyboard[SDL_SCANCODE_E] && m_player->reload == 0)
+        {
+            fireBullet();
+        }
+
+        m_player->x += m_player->dx;
+        m_player->y += m_player->dy;
     }
 
-    if (m_keyboard[SDL_SCANCODE_UP])
-    {
-        m_player->dy = -PLAYER_SPEED;
-    }
+}
 
-    if (m_keyboard[SDL_SCANCODE_DOWN])
-    {
-        m_player->dy = PLAYER_SPEED;
+void Game::doEnemies() {
+    for(Entity* f : m_fighters) {
+        if(f != m_player && m_player != nullptr && --f->reload <= 0) {
+            fireEnemeyBullet(f);
+        }
     }
-
-    if (m_keyboard[SDL_SCANCODE_LEFT])
-    {
-        m_player->dx = -PLAYER_SPEED;
-    }
-
-    if (m_keyboard[SDL_SCANCODE_RIGHT])
-    {
-        m_player->dx = PLAYER_SPEED;
-    }
-
-    if (m_keyboard[SDL_SCANCODE_E] && m_player->reload == 0)
-    {
-        fireBullet();
-    }
-
-    m_player->x += m_player->dx;
-    m_player->y += m_player->dy;
 }
 
 void Game::doBullets() {
@@ -180,11 +199,14 @@ void Game::doBullets() {
     for(Entity* b : m_bullets) {
         b->x += b->dx;
         b->y += b->dy;
-        if(bulletHitFighter(b) || b->x > SCREEN_WIDTH || b->health == 0) {
+
+        //check if any of the bullets are leaving the screen
+        if(bulletHitFighter(b) || b->x < -b->w || b->y < -b->h || b->x > SCREEN_WIDTH || b->y > SCREEN_HEIGHT || b->health == 0) {
             removeList.push_back(b);
         }
     }
 
+    //remove the entities from the bullets list and delete them
     for(Entity* e : removeList) {
         m_bullets.remove(e);
         delete e;
@@ -198,11 +220,23 @@ void Game::doFighters() {
     for(Entity* f : m_fighters) {
         f->x += f->dx;
         f->y += f->dy;
-        if(f != m_player && (f->x < -f->w) || f->health == 0) {
+
+        //if you're not the player and you're off the screen, your health is 0
+        if(f != m_player && (f->x < -f->w)) {
+            f->health = 0;
+        }
+
+        //if your health is 0 and you're the player, set to nullptr, or remove it;
+        if(f->health == 0) {
+            if(f == m_player) {
+                m_player = nullptr;
+            }
             removeList.push_back(f);
         }
+
     }
 
+    //remove entities from the fighters list and delete them
     for(Entity* e : removeList) {
         m_fighters.remove(e);
         delete e;
@@ -218,6 +252,9 @@ void Game::spawnEnemies() {
         enemy->health = 1;
         enemy->side = SIDE_ALIEN;
         enemy->id = rand();
+
+        //don't want the enemies to fire right away -- this is a 1 to 2 second window before they can fire
+        enemy->reload = FPS * (1 +(rand() %3));
         m_fighters.push_back(enemy);
 
         enemySpawnTimer = 30 + (rand() % 60);
@@ -225,29 +262,29 @@ void Game::spawnEnemies() {
 }
 
 void Game::draw() {
-    drawPlayer();
     drawBullets();
     drawFighters();
 }
 
-void Game::drawPlayer() {
-    blit(m_player->texture, m_player->x, m_player->y);
-}
 
 void Game::drawBullets() {
     for(Entity* b : m_bullets) {
-        blit(b->texture, b->x, b->y);
+        if(b != nullptr) {
+            blit(b->texture, b->x, b->y);
+        }
     }
 }
 
 void Game::drawFighters() {
     for(const auto& f : m_fighters) {
-        blit(f->texture, f->x, f->y);
+        if(f != nullptr) {
+            blit(f->texture, f->x, f->y);
+        }
     }
 }
 
 void Game::fireBullet() {
-    auto* bullet = new Entity(m_player->x, m_player->y, m_bulletTexture);
+    auto* bullet = new Entity(m_player->x, m_player->y, m_playerBulletTexture);
     bullet->dx = PLAYER_BULLET_SPEED;
     bullet->health = 1;
     SDL_QueryTexture(bullet->texture, nullptr, nullptr, &bullet->w, &bullet->h);
@@ -259,6 +296,31 @@ void Game::fireBullet() {
 
     m_player->reload = 8;
 }
+
+void Game::fireEnemeyBullet(Entity* e) {
+    auto* bullet = new Entity(e->x, e->y, m_enemyBulletTexture);
+    bullet->id = rand();
+    bullet->health = 1;
+    bullet->side = SIDE_ALIEN;
+    SDL_QueryTexture(bullet->texture, nullptr, nullptr, &bullet->w, &bullet->h);
+
+    //puts this in the middle of the entity's height and width
+    bullet->x += (e->w / 2) - (bullet->w / 2);
+    bullet->y += (e->h / 2) - (bullet->h / 2);
+
+    //fire bullet from entity to player, getting the normalized steps of the slope to move
+    calculateSlope(m_player->x + (m_player->w / 2), m_player->y + (m_player->h / 2), e->x, e->y, &bullet->dx, &bullet->dy);
+
+    //create the delta of x and y for movement
+    bullet->dx *= ALIEN_BULLET_SPEED;
+    bullet->dy *= ALIEN_BULLET_SPEED;
+
+    m_bullets.push_back(bullet);
+
+    //fire anytime within the next 2 seconds (this'll be < 120, basically)
+    e->reload = (rand() % FPS * 2);
+}
+
 
 int Game::collision(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2) {
     return (max(x1, x2) < min(x1 + w1, x2 + w2)) && (max(y1, y2) < min(y1 + h1, y2 + h2));
@@ -276,6 +338,73 @@ int Game::bulletHitFighter(Entity *b) {
     }
 
     return 0;
+}
+
+void Game::calculateSlope(int x1, int y1, int x2, int y2, float *dx, float *dy) {
+    int steps = max(abs(x1 - x2), abs(y1 - y2));
+
+    if (steps == 0)
+    {
+        *dx = *dy = 0;
+        return;
+    }
+
+    //dx or dy will be 1 or -1 always; meaning the Bulllet Speed assigned will be a constant speed along that axis
+
+    *dx = (x1 - x2);
+    *dx /= steps;
+
+    *dy = (y1 - y2);
+    *dy /= steps;
+}
+
+//make sure the player stays within the bounds of the screen
+void Game::clipPlayer() {
+
+    if(m_player != nullptr) {
+
+        if(m_player->x < 0) {
+            m_player-> x = 0;
+        }
+
+        if(m_player->y < 0) {
+            m_player->y = 0;
+        }
+
+        if (m_player->x > SCREEN_WIDTH / 2)
+        {
+            m_player->x = SCREEN_WIDTH / 2;
+        }
+
+        if (m_player->y > SCREEN_HEIGHT - m_player->h)
+        {
+            m_player->y = SCREEN_HEIGHT - m_player->h;
+        }
+    }
+}
+
+void Game::resetGame() {
+
+    list<Entity*> removeList;
+
+    for(Entity* e : m_bullets) {
+        removeList.push_back(e);
+    }
+
+    for(Entity* e : m_fighters) {
+        removeList.push_back(e);
+    }
+
+    for(Entity* r : removeList) {
+        delete r;
+    }
+    m_bullets.clear();
+    m_fighters.clear();
+    delete m_player;
+
+    initializePlayer();
+    initializeEnemy();
+    m_gameResetTimer = FPS * 2;
 }
 
 

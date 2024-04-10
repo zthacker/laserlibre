@@ -11,6 +11,7 @@ Game::Game() {
     inititalizeTextures();
     initializePlayer();
     initializeEnemy();
+    initializeStarfield();
 }
 
 Game::~Game() {
@@ -20,6 +21,9 @@ Game::~Game() {
     SDL_DestroyTexture(m_playerBulletTexture);
     SDL_DestroyTexture(m_playerTexture);
     SDL_DestroyTexture(m_enemyTexture);
+    SDL_DestroyTexture(m_background);
+    SDL_DestroyTexture(m_explosionTexture);
+    SDL_DestroyTexture(m_fontTexture);
     SDL_Quit();
     m_state = LASER_STATE_SETUP;
 }
@@ -79,7 +83,9 @@ void Game::initializeStarfield() {
 }
 
 void Game::prepareScene() {
+    //background color
     SDL_SetRenderDrawColor(m_renderer, 96, 128, 255, 255);
+    //clear out renderer
     SDL_RenderClear(m_renderer);
 }
 
@@ -89,9 +95,9 @@ void Game::presentScene() {
 
 void Game::blit(SDL_Texture *texture, int x, int y) {
     SDL_Rect dest;
-
     dest.x = x;
     dest.y = y;
+
     SDL_QueryTexture(texture, nullptr, nullptr, &dest.w, &dest.h);
     SDL_RenderCopy(m_renderer, texture, nullptr, &dest);
 }
@@ -119,6 +125,7 @@ void Game::keyPressUp(SDL_KeyboardEvent *event) {
     }
 }
 
+//Player needs to move (1)
 void Game::keyPressDown(SDL_KeyboardEvent *event) {
     if (event->repeat == 0 && event->keysym.scancode < MAX_KEYBOARD_KEYS)
     {
@@ -126,9 +133,14 @@ void Game::keyPressDown(SDL_KeyboardEvent *event) {
     }
 }
 
+//Handling SDL_Events -- mainly for Keyboard right now
 void Game::doInput() {
+    //what is being checked here is that event type of the SDL. We want to know what keys were pressed in the event.
+    // SDL has a long list of scancodes (ints for what key is pressed) and those need to be passed to our keyDown and keyUp
+    //functions for verification and processing. The m_keyboard var holds all the scancodes (0 - MAX_KEYBOARD_KEYS) that
+    // shouldn't be exceeded. Since those are ints are created in the array, this simple (and efficiently) sets
+    // the scancode int to be 1 (pressed) and 0 (not pressed), which later we do movement on.
     SDL_Event event;
-
     while (SDL_PollEvent(&event))
     {
         switch (event.type)
@@ -169,6 +181,7 @@ void Game::logic() {
 
 }
 
+//Handles the Player's movement, firing and other vars
 void Game::doPlayer() {
 
     if(m_player != nullptr) {
@@ -212,8 +225,11 @@ void Game::doPlayer() {
 
 void Game::doEnemies() {
     for(Entity* f : m_fighters) {
-        if(f != m_player && m_player != nullptr && --f->reload <= 0) {
-            fireEnemeyBullet(f);
+        if(f != m_player) {
+            f->y = min(max(int(f->y), 0), SCREEN_HEIGHT - f->h);
+            if(m_player != nullptr && --f->reload <= 0) {
+                fireEnemeyBullet(f);
+            }
         }
     }
 }
@@ -223,10 +239,11 @@ void Game::doBullets() {
     list<Entity*> removeList;
 
     for(Entity* b : m_bullets) {
+        //move bullet along it's delta X and Y
         b->x += b->dx;
         b->y += b->dy;
 
-        //check if any of the bullets are leaving the screen
+        //check if any of the bullets are leaving the screen or hit a fighter
         if(bulletHitFighter(b) || b->x < -b->w || b->y < -b->h || b->x > SCREEN_WIDTH || b->y > SCREEN_HEIGHT || b->health == 0) {
             removeList.push_back(b);
         }
@@ -272,9 +289,13 @@ void Game::doFighters() {
 void Game::spawnEnemies() {
 
     if(--enemySpawnTimer <= 0) {
-        auto* enemy = new Entity(SCREEN_WIDTH,rand()%SCREEN_HEIGHT,m_enemyTexture);
+        int spawnY = rand()%(SCREEN_HEIGHT-0 + 1) + 0;
+
+        auto* enemy = new Entity(SCREEN_WIDTH,spawnY,m_enemyTexture);
         SDL_QueryTexture(enemy->texture, nullptr, nullptr, &enemy->w, &enemy->h);
         enemy->dx = -(2 + (rand() % 4));
+        enemy->dy = -100 + (rand() % 200);
+        enemy->dy /= 100;
         enemy->health = 1;
         enemy->side = SIDE_ALIEN;
         enemy->id = rand();
@@ -300,7 +321,7 @@ void Game::draw() {
 
 void Game::drawBackground() {
     SDL_Rect dest;
-    for (int x = 0; x < SCREEN_WIDTH; x += SCREEN_WIDTH) {
+    for (int x = m_backgroundX; x < SCREEN_WIDTH; x += SCREEN_WIDTH) {
         dest.x = x;
         dest.y = 0;
         dest.w = SCREEN_WIDTH;
@@ -353,7 +374,7 @@ void Game::drawExplosions() {
     SDL_SetRenderDrawBlendMode(m_renderer, SDL_BLENDMODE_ADD);
     SDL_SetTextureBlendMode(m_explosionTexture, SDL_BLENDMODE_ADD);
 
-    for(Entity* e : m_debris) {
+    for(Entity* e : m_explosions) {
         SDL_SetTextureColorMod(m_explosionTexture, e->r, e->g, e->b);
         SDL_SetTextureAlphaMod(m_explosionTexture, e->a);
 
@@ -462,22 +483,17 @@ int Game::collision(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int 
 }
 
 int Game::bulletHitFighter(Entity *b) {
-    for(auto it = m_fighters.begin(); it!=m_fighters.end();) {
-        Entity* f = *it;
-        if(f->side != b->side && collision(b->x, b->y, b->w, b->h, f->x, f->y, f->w, f->h)) {
+    for(Entity* e : m_fighters) {
+        if(e->side != b->side && collision(b->x, b->y, b->w, b->h, e->x, e->y, e->w, e->h)) {
             b->health = 0;
-            f->health = 0;
-
-            addExplosions(f->x, f->y, 32);
-            addDebris(f);
-
+            e->health = 0;
+            addExplosions(e->x, e->y, 32);
+            addDebris(e);
             m_score++;
             m_highscore = max(m_score, m_highscore);
             return 1;
         }
-        it++;
     }
-
     return 0;
 }
 
@@ -516,6 +532,7 @@ void Game::clipPlayer() {
         {
             m_player->x = SCREEN_WIDTH / 2;
         }
+
 
         if (m_player->y > SCREEN_HEIGHT - m_player->h)
         {
@@ -588,6 +605,7 @@ void Game::doExplosions() {
     list<Entity*> removeList;
     for(Entity* e : m_explosions) {
         if(e != nullptr) {
+            //set the explosions x and y to the deltaX and deltaY to give it the spreading out effect and a little drift
             e->x += e->dx;
             e->y += e->dy;
             //once the alpha level (a) is 0 -- meaning it's faded out -- we'll delete it.

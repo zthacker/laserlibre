@@ -297,14 +297,16 @@ void Game::spawnEnemies() {
         enemy->dy = -100 + (rand() % 200);
         enemy->dy /= 100;
         enemy->health = 1;
-        enemy->side = SIDE_ALIEN;
+        enemy->side = SIDE_ENEMY;
         enemy->id = rand();
 
         //don't want the enemies to fire right away -- this is a 1 to 2 second window before they can fire
         enemy->reload = FPS * (1 +(rand() %3));
         m_fighters.push_back(enemy);
 
-        enemySpawnTimer = 30 + (rand() % FPS);
+        //spawn timer for Enemy -- some random number between 0-FPS(60)-1 + 30
+        //this ends up with a spawn between 30 and 89ms -- .5sec - 1.5sec
+        enemySpawnTimer = ENEMY_MIN_SPAWN_MS + (rand() % FPS);
     }
 }
 
@@ -317,7 +319,6 @@ void Game::draw() {
     drawExplosions();
     drawHud();
 }
-
 
 void Game::drawBackground() {
     SDL_Rect dest;
@@ -457,7 +458,7 @@ void Game::fireEnemeyBullet(Entity* e) {
     auto* bullet = new Entity(e->x, e->y, m_enemyBulletTexture);
     bullet->id = rand();
     bullet->health = 1;
-    bullet->side = SIDE_ALIEN;
+    bullet->side = SIDE_ENEMY;
     SDL_QueryTexture(bullet->texture, nullptr, nullptr, &bullet->w, &bullet->h);
 
     //puts this in the middle of the entity's height and width
@@ -468,8 +469,8 @@ void Game::fireEnemeyBullet(Entity* e) {
     calculateSlope(m_player->x + (m_player->w / 2), m_player->y + (m_player->h / 2), e->x, e->y, &bullet->dx, &bullet->dy);
 
     //create the delta of x and y for movement
-    bullet->dx *= ALIEN_BULLET_SPEED;
-    bullet->dy *= ALIEN_BULLET_SPEED;
+    bullet->dx *= ENEMY_BULLET_SPEED;
+    bullet->dy *= ENEMY_BULLET_SPEED;
 
     m_bullets.push_back(bullet);
 

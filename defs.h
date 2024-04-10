@@ -16,11 +16,12 @@
 #define MAX_KEYBOARD_KEYS 350
 
 #define SIDE_PLAYER 0
-#define SIDE_ALIEN  1
+#define SIDE_ENEMY  1
 
 #define FPS 60
 
-#define ALIEN_BULLET_SPEED    8
+#define ENEMY_BULLET_SPEED    8
+#define ENEMY_MIN_SPAWN_MS    30
 
 #define MAX_STARS 500
 

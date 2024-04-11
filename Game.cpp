@@ -446,15 +446,17 @@ void Game::drawHud() {
 }
 
 void Game::fireBullet() {
-    auto* bullet = new Entity(m_player->x, m_player->y, m_playerBulletTexture);
-    bullet->dx = PLAYER_BULLET_SPEED;
-    bullet->health = 1;
-    SDL_QueryTexture(bullet->texture, nullptr, nullptr, &bullet->w, &bullet->h);
-    bullet->y += (m_player->h /2) - (bullet->h / 2);
-    bullet->health = PLAYER_HEALTH;
-    bullet->side = SIDE_PLAYER;
-    bullet->id = rand();
-    m_bullets.push_back(bullet);
+    for (int i = 0; i < PLAYER_BULLETS_TO_FIRE; ++i) {
+        auto* bullet = new Entity(m_player->x, m_player->y, m_playerBulletTexture);
+        bullet->x += i * m_player->w;
+        bullet->dx = PLAYER_BULLET_SPEED;
+        bullet->health = PLAYER_BULLET_HEALTH;
+        SDL_QueryTexture(bullet->texture, nullptr, nullptr, &bullet->w, &bullet->h);
+        bullet->y += (m_player->h /2) - (bullet->h / 2);
+        bullet->side = SIDE_PLAYER;
+        bullet->id = rand();
+        m_bullets.push_back(bullet);
+    }
 
     m_player->reload = PLAYER_RELOAD;
 }

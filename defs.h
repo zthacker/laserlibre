@@ -12,6 +12,10 @@
 
 #define PLAYER_SPEED        4
 #define PLAYER_BULLET_SPEED 20
+#define PLAYER_RELOAD   8
+#define PLAYER_HEALTH 2
+#define PLAYER_SPAWN_X 100
+#define PLAYER_SPAWN_Y 100
 
 #define MAX_KEYBOARD_KEYS 350
 
@@ -22,6 +26,7 @@
 
 #define ENEMY_BULLET_SPEED    8
 #define ENEMY_MIN_SPAWN_MS    30
+#define ENEMY_HEALTH    2
 
 #define MAX_STARS 500
 

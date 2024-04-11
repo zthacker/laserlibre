@@ -15,6 +15,7 @@ public:
     ~Entity();
 
     int          id;
+    string       name;
     float        x;
     float        y;
     int          w{};

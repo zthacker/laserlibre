@@ -59,13 +59,14 @@ void Game::inititalizeTextures() {
 }
 
 void Game::initializePlayer() {
-    this->m_player = new Entity(100, 100, m_playerTexture);
+    this->m_player = new Entity(PLAYER_SPAWN_X, PLAYER_SPAWN_Y, m_playerTexture);
     SDL_QueryTexture(m_player->texture, nullptr, nullptr, &m_player->w, &m_player->h);
 
     this->m_player->reload = 0;
-    this->m_player->health = 1;
+    this->m_player->health = PLAYER_HEALTH;
     this->m_player->side = SIDE_PLAYER;
     this->m_player->id = rand();
+    this->m_player->name = "Player";
     this->m_fighters.push_back(m_player);
 }
 
@@ -296,12 +297,16 @@ void Game::spawnEnemies() {
         enemy->dx = -(2 + (rand() % 4));
         enemy->dy = -100 + (rand() % 200);
         enemy->dy /= 100;
-        enemy->health = 1;
+        enemy->health = ENEMY_HEALTH;
         enemy->side = SIDE_ENEMY;
         enemy->id = rand();
+        string text = "Enemy";
+        enemy->name = text += to_string(enemy->id);
 
         //don't want the enemies to fire right away -- this is a 1 to 2 second window before they can fire
         enemy->reload = FPS * (1 +(rand() %3));
+
+        //add to fighters list
         m_fighters.push_back(enemy);
 
         //spawn timer for Enemy -- some random number between 0-FPS(60)-1 + 30
@@ -446,12 +451,12 @@ void Game::fireBullet() {
     bullet->health = 1;
     SDL_QueryTexture(bullet->texture, nullptr, nullptr, &bullet->w, &bullet->h);
     bullet->y += (m_player->h /2) - (bullet->h / 2);
-    bullet->health = 1;
+    bullet->health = PLAYER_HEALTH;
     bullet->side = SIDE_PLAYER;
     bullet->id = rand();
     m_bullets.push_back(bullet);
 
-    m_player->reload = 8;
+    m_player->reload = PLAYER_RELOAD;
 }
 
 void Game::fireEnemeyBullet(Entity* e) {
@@ -486,12 +491,17 @@ int Game::collision(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int 
 int Game::bulletHitFighter(Entity *b) {
     for(Entity* e : m_fighters) {
         if(e->side != b->side && collision(b->x, b->y, b->w, b->h, e->x, e->y, e->w, e->h)) {
+            e->health--;
             b->health = 0;
-            e->health = 0;
-            addExplosions(e->x, e->y, 32);
-            addDebris(e);
-            m_score++;
-            m_highscore = max(m_score, m_highscore);
+
+            if(e->health <= 0) {
+                b->health = 0;
+                addExplosions(e->x, e->y, 32);
+                addDebris(e);
+                m_score++;
+                m_highscore = max(m_score, m_highscore);
+                return 1;
+            }
             return 1;
         }
     }
